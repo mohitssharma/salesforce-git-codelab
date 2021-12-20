@@ -1,21 +1,28 @@
-name: Org Deployment CI
 
+name: Build
 on:
-  push:
-    branches: [ master ]
+ push:
+   branches:
+    - master # or the name of your main branch
+ pull_request:
+    types: [opened, synchronize, reopened]
 jobs:
   build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Decrypting Server Key
-      shell: bash
-      run: openssl enc -nosalt -aes-256-cbc -d -in certificates/server.key.enc -out certificates/server.key -base64 -K ${{ secrets.RAHUL_FORCE_DECRYPTION_KEY }} -iv ${{ secrets.RAHUL_FORCE_DECRYPTION_IV }}
-    - name: Authorizing Org
-      uses: rahulmalhotra/salesforcedx-actions@master
-      with:
-          args: force:auth:jwt:grant --clientid ${{ secrets.RAHUL_FORCE_CONSUMER_KEY }} --jwtkeyfile certificates/server.key --username ${{ secrets.RAHUL_FORCE_USER_NAME }} --setdefaultusername
-    - name: Deploying Metadata
-      uses: rahulmalhotra/salesforcedx-actions@master
-      with:
-          args: force:source:deploy --manifest manifest/package.xml
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - uses: sonarsource/sonarqube-scan-action@master
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      # If you wish to fail your job when the Quality Gate is red, uncomment the
+      # following lines. This would typically be used to fail a deployment.
+      # We do not recommend to use this in a pull request. Prefer using pull request
+      # decoration instead.
+      # - uses: sonarsource/sonarqube-quality-gate-action@master
+      #   timeout-minutes: 5
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
